@@ -1,2 +1,1 @@
-# Task1.Introduction
-Computer Graphics
+# Computer Graphics
