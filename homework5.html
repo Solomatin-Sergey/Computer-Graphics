@@ -1,0 +1,188 @@
+<HTML>
+    <BODY>
+        
+    <canvas id="lab05" width="800" height="800"></canvas>
+    <script>
+        /* построить результирующий отрезок, лежащий только внутри 
+        многоугольника, согласно алгоритму Цируса-Бека */
+        function Line(ctx, x0, y0, x1, y1) {
+            var dy = Math.abs(y1-y0);
+            var dx = Math.abs(x1-x0);
+            var dmax = Math.max(dx, dy);
+            var dmin = Math.min(dx, dy);
+            var xdir = 1;
+            if (x1<x0) xdir = -1;	
+            var ydir = 1;
+            if (y1<y0) ydir = -1;
+            var eps = 0;
+            var s = 1;
+            var k=2*dmin;
+            if (dy<=dx) {
+                var y = y0;
+                for (var x=x0; x*xdir<=x1*xdir; x+=xdir) {
+                    ctx.fillRect(x*s, y*s, 1*s, 1*s);
+                    eps = eps+k;
+                    if (eps>dmax) {
+                        y+=ydir;
+                        eps = eps - 2*dmax;
+                    }	
+                } 
+            } else {
+                var x = x0;
+                for (var y=y0; y*ydir<=y1*ydir; y+=ydir) {
+                    ctx.fillRect(x*s, y*s, 1*s, 1*s);
+                    eps = eps+k;
+                    if (eps>dmax) {
+                        x+=xdir;
+                        eps = eps - 2*dmax;
+                    }	
+                } 
+            }		
+        }
+    </script>
+    <script>
+        var canvas = document.getElementById("lab05");
+        var ctx = canvas.getContext("2d");
+        var state = 0;
+        var ax, ay;
+        var bx, by;
+        var p1x, p1y;
+        var p2x, p2y;
+        
+        function scalar_mult(a,b)
+        {
+            return a[0]*b[0]+a[1]*b[1];
+        }
+        function sortEggsInNest(a, b) {
+        return a > b ? 1 : b > a ? -1 : 0;
+        }
+        function compare(a,b){
+            return a<b;
+        }
+        canvas.addEventListener("click", function(event)
+        {
+                if (state == 0) {
+                    ax = event.offsetX;
+                    ay = event.offsetY;
+                    console.log(ax, ay);
+                    state = 1;
+                    console.log(state);
+                } else if (state == 1) {
+                    bx = event.offsetX;
+                    by = event.offsetY;
+                    console.log(bx, by);
+                     // рисуем прямую
+                    Line(ctx, ax, ay, bx, by);
+                    state = 2;
+                } else if (state == 2) {
+                    // рисуем окно
+                    cx = event.offsetX;
+                    cy = event.offsetY;
+                    ctx.beginPath();
+                    ctx.rect(cx, cy, 200, 150);
+                    ctx.closePath();
+                    ctx.stroke();
+                    console.log("x1,y1",[cx,cy],"x2,y2",[cx,cy+150],"x3,y3",[cx+200,cy+150],"x4,y4",[cx+200,cy]);
+                    state = 3;
+                } 
+                else if(state ==3)
+                {
+                   var t_minmax, t_maxmin;  // верхний предел и  нижний предел 
+                    t_bottom = []
+                    t_top = []
+                   D = [bx-ax,by-ay] // вычислили директрису
+                   n1 = [1,0] // левая нормаль
+                   n2 = [-1,0] // правая нормаль
+                   n3 =[0,-1] // нижняя нормаль
+                   n4 = [0,1] // верхняя нормаль
+                   normales = [n1,n2,n3,n4]
+                   f1 = [cx,cy+150]
+                   f2 = [cx+200, cy]
+                   f = [f1,f2,f1,f2]
+                   for (var i=0; i<4; i++) // начинаем цикл по сторонам
+                   {
+                    if (scalar_mult(D,normales[i])!=0)
+                    {
+                        w = [ax - f[i][0], ay - f[i][1]]
+                        t = -(scalar_mult(w,normales[i])/(scalar_mult(D,normales[i])))
+                        console.log("t =",t)
+                        if (scalar_mult(D,normales[i])<0)
+                        {
+                            // поиск верхнего предела
+                            if (compare(0,t)==true && compare(1,t)==false)
+                            {
+                                t_top.push(t)
+                                console.log("t_top - возможные верхние пределы",t_top)
+                                t_minmax = Math.min(...t_top)
+                            }
+                            else
+                            {
+                                continue;
+                            }
+                        }
+                        else // поиск нижнего предела
+                        {
+                            if (compare(0,t)==true && compare(1,t)==false)
+                            {
+                                t_bottom.push(t)
+                                console.log("t_bottom- возможные нижние пределы",t_bottom)
+                                t_maxmin = Math.max(...t_bottom)
+                            }
+                            else
+                            {
+                                continue;
+                            }
+                        }
+                    }
+
+                    else
+                    {
+                        w = [ax - f[i][0], ay - f[i][1]]
+                        if (scalar_mult(w,normales[i])<0)
+                        {
+                            continue;
+                        }
+                    }
+
+
+                   }
+                   console.log("нижний предел",t_maxmin,"верхний предел",t_minmax)
+                  
+                   {
+                    var x1,y1,x2,y2;
+                    // начертить отрезок
+                    if (t_maxmin!=null && t_minmax!=null &&  (compare(t_maxmin,t_minmax)==true))
+                   { x1 = ax + D[0]*t_maxmin
+                    y1 = ay + D[1]*t_maxmin
+                    x2 = ax + D[0]*t_minmax
+                    y2 = ay + D[1]*t_minmax}
+                    else if (t_maxmin==null)
+                    {
+                        x1 =ax;
+                        y1 =ay;
+                        x2 = ax + D[0]*t_minmax;
+                        y2 = ay + D[1]*t_minmax;
+                    }
+                    else if (t_minmax==null)
+                    {
+                        x1 = ax + D[0]*t_maxmin
+                        y1 = ay + D[1]*t_maxmin
+                        x2 = bx
+                        y2 = by
+                    }
+                    console.log("нижний предел",t_maxmin,"верхний предел",t_minmax)
+                    ctx.fillStyle = "#00ff00";
+                    if (x1!=null && y1!=null && x2!=null && y2!=null)
+                    {Line(ctx,x1,y1,x2,y2)}
+                    ctx.fillStyle = "#000000";
+                   }
+                   state = 0;
+                }
+                
+        	
+        });
+       
+    </script> 
+    
+    </BODY>
+    </HTML>
